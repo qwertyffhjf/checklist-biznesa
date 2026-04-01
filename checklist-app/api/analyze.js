@@ -4,69 +4,62 @@
 export const config = { maxDuration: 30 };
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { companyInfo, answers, blockScores, totalScore } = req.body;
-
+  const { companyInfo, answers, blockScores, totalScore, blocks } = req.body;
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) {
-    return res.status(500).json({ error: "GROQ_API_KEY не настроен в переменных окружения Vercel" });
-  }
-
-  const BLOCKS_META = [
-    { id: 1, title: "Стратегия и цели" },
-    { id: 2, title: "Производство" },
-    { id: 3, title: "Продажи и клиенты" },
-    { id: 4, title: "Закупки и склад" },
-    { id: 5, title: "Команда и мотивация" },
-  ];
-
-  const blockSummary = BLOCKS_META.map(b =>
-    `Блок ${b.id} «${b.title}»: ${blockScores[b.id]}/20`
-  ).join(" | ");
-
-  const answerLines = Object.entries(answers)
-    .map(([qid, pts]) => `  ${qid}: ${pts}/4 балла`)
-    .join("\n");
+  if (!GROQ_API_KEY) return res.status(500).json({ error: "GROQ_API_KEY не настроен" });
 
   const levelLabel =
-    totalScore <= 40 ? "Критический" :
-    totalScore <= 60 ? "Развивающийся" :
-    totalScore <= 80 ? "Зрелый" : "Передовой";
+    totalScore <= 40 ? "Критический 🔴" :
+    totalScore <= 60 ? "Развивающийся 🟡" :
+    totalScore <= 80 ? "Зрелый 🟢" : "Передовой 🔵";
 
-  const prompt = `Ты — эксперт РЦК (Регионального центра компетенций) по производительности труда и lean-производству.
-Проведи анализ чек-листа «Здоровье бизнеса» и дай конкретные рекомендации.
+  // Ключевое улучшение: передаём текст каждого вопроса + текст выбранного ответа
+  const detailedAnswers = (blocks || []).map(b => {
+    const lines = b.questions.map(q => {
+      const pts = answers[q.id] || 0;
+      const selectedAnswer = pts > 0 ? q.answers[pts - 1] : "нет ответа";
+      const flag = pts <= 2 ? " ⚠️" : pts === 4 ? " ✅" : "";
+      return `  ${q.id} [${pts}/4]${flag} ${q.text}\n     → «${selectedAnswer}»`;
+    }).join("\n");
+    return `БЛОК ${b.id} «${b.title}» — ${blockScores[b.id]}/20:\n${lines}`;
+  }).join("\n\n");
 
-ДАННЫЕ О ПРЕДПРИЯТИИ:
+  const prompt = `Ты — опытный консультант РЦК (Региональный центр компетенций) по производительности труда Ростовской области. Специализация: lean-производство, бережливое управление, диагностика предприятий МСП.
+
+ПРЕДПРИЯТИЕ:
 - Название: ${companyInfo.name || "не указано"}
 - Отрасль: ${companyInfo.industry || "не указана"}
 - Должность: ${companyInfo.position || "не указана"}
 - Сотрудников: ${companyInfo.employees || "не указано"}
 
-РЕЗУЛЬТАТЫ: ${totalScore}/100 — ${levelLabel}
-${blockSummary}
+ИТОГ: ${totalScore}/100 — уровень «${levelLabel}»
+${(blocks||[]).map(b => `«${b.title}» ${blockScores[b.id]}/20`).join(" | ")}
 
-БАЛЛЫ ПО ВОПРОСАМ:
-${answerLines}
+ДЕТАЛЬНЫЕ ОТВЕТЫ (⚠️ = критично 1-2 балла, ✅ = отлично 4 балла):
+${detailedAnswers}
 
-Напиши структурированный анализ:
+ТРЕБОВАНИЯ К АНАЛИЗУ:
+- Обязательно цитируй конкретные ответы из списка выше
+- Называй конкретные проблемы, не общие слова
+- Используй lean-терминологию (муда, 5S, SMED, VSM, KPI, ТОиР и т.д.)
+- Давай измеримые рекомендации с цифрами и сроками
 
-## Общая оценка
-[2-3 предложения о ситуации]
+## 🔍 Общая оценка
+[2-3 предложения с конкретными наблюдениями, ссылаясь на ответы]
 
-## Ключевые проблемы
-[3-5 конкретных болевых точек на основе низких баллов]
+## ⚡ Ключевые болевые точки
+[4-5 проблем, каждая со ссылкой на конкретный ответ из анкеты]
 
-## Приоритетные рекомендации
-[5 конкретных действий: ЧТО делать, КАК, РЕЗУЛЬТАТ]
+## 🛠 Приоритетные рекомендации
+[5-6 действий: ЧТО → КАК (конкретный инструмент) → РЕЗУЛЬТАТ с цифрами]
 
-## Подходящие услуги РЦК
-[3-5 услуг с обоснованием]
+## 📋 Услуги РЦК для вашего предприятия
+[3-4 услуги с обоснованием через конкретные ответы анкеты. Выбирай из: повышение производительности, обучение инструментам БП, руководитель проектного офиса, целеполагание и KPI, управление качеством, бережливые продажи, диагностика и аудит, внедрение MES/ERP, цифровой двойник, консультационное сопровождение, бизнес-план и финмодель]
 
-## Первые 30 дней
-[3 конкретных шага которые можно начать прямо сейчас]`;
+## 🚀 Первые 30 дней
+[3 конкретных шага с измеримым результатом]`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -81,7 +74,7 @@ ${answerLines}
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 1500,
+        max_tokens: 1800,
         stream: true,
         messages: [{ role: "user", content: prompt }],
       }),
