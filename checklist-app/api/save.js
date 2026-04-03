@@ -53,13 +53,15 @@ export default async function handler(req, res) {
   };
 
   try {
-    const resp = await fetch(SHEETS_URL, {
+    // Отправляем данные в Apps Script — не ждём JSON ответа
+    // Apps Script может вернуть HTML редирект, это нормально
+    fetch(SHEETS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(row),
-    });
-    const data = await resp.json();
-    return res.status(200).json({ ok: true, sheets: data });
+    }).catch(e => console.error("Sheets fetch error:", e.message));
+
+    return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("Sheets/email error:", err);
     return res.status(200).json({ ok: false, error: err.message });
