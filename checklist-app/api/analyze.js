@@ -116,7 +116,7 @@ ${RCK_SERVICES}
           "Authorization": `Bearer ${GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "llama-3.1-70b-versatile", // более стабильная модель для русского
+          model: "llama-3.3-70b-versatile", // более стабильная модель для русского
           max_tokens: 1800,
           temperature: 0.3, // низкая температура = меньше артефактов
           stream: true,
