@@ -38,6 +38,8 @@ export default async function handler(req, res) {
       Object.entries(answers || {}).map(([k, v]) => [k.replace(".", "_"), v])
     ),
     ai_analysis: (aiAnalysis || "").slice(0, 2000),
+    manager_email: req.body.managerEmail || "",
+    follow_up_days: req.body.followUpDays ?? 3,
     // Передаём блоки чтобы Apps Script мог сформировать детальное письмо
     blocks_json: JSON.stringify((blocks || []).map(b => ({
       title: b.title,
