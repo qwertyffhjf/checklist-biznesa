@@ -10,12 +10,13 @@ const C = {
 };
 
 const DEFAULT_FIELDS = [
-  { key:"name",     label:"Название предприятия", placeholder:"ООО «...»",               required:true  },
-  { key:"industry", label:"Отрасль",              placeholder:"Производство...",          required:true  },
-  { key:"position", label:"Должность",            placeholder:"Генеральный директор...",  required:true  },
-  { key:"employees",label:"Число сотрудников",    placeholder:"50, 200...",               required:false },
-  { key:"phone",    label:"Телефон",              placeholder:"+7 (900) 000-00-00",       required:false },
-  { key:"email",    label:"Email",                placeholder:"example@company.ru",       required:false },
+  { key:"name",     label:"Название предприятия", placeholder:"ООО «...»",              required:true,  type:"text" },
+  { key:"industry", label:"Отрасль",              placeholder:"Выберите отрасль",        required:true,  type:"select",
+    options:["Производство металлоконструкций","Производство оборудования","Пищевая промышленность","Деревообработка","Химическая промышленность","Строительство","Сельское хозяйство","Транспорт и логистика","Торговля","ИТ и телекоммуникации","Энергетика","Другое"] },
+  { key:"position", label:"Должность",            placeholder:"Генеральный директор...", required:true,  type:"text" },
+  { key:"employees",label:"Число сотрудников",    placeholder:"50, 200...",              required:false, type:"text" },
+  { key:"phone",    label:"Телефон",              placeholder:"+7 (900) 000-00-00",      required:false, type:"text" },
+  { key:"email",    label:"Email",                placeholder:"example@company.ru",      required:false, type:"text" },
 ];
 
 const DEFAULT_CONTENT = {
@@ -228,10 +229,29 @@ function AdminPanel({ content, onSave, onClose, onReset }) {
                     </div>
                     {fields.length>1&&<button onClick={()=>removeField(fi)} style={{background:"none",border:"none",color:C.text3,cursor:"pointer",fontSize:18,padding:"0 4px"}}>×</button>}
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                     <div>{lbl("Название поля")} {inp(f.label,v=>updField(fi,"label",v))}</div>
-                    <div>{lbl("Подсказка")} {inp(f.placeholder,v=>updField(fi,"placeholder",v))}</div>
+                    <div>{lbl("Подсказка / placeholder")} {inp(f.placeholder,v=>updField(fi,"placeholder",v))}</div>
                   </div>
+                  <div style={{marginBottom: f.type==="select"?8:0}}>
+                    {lbl("Тип поля")}
+                    <select value={f.type||"text"} onChange={e=>updField(fi,"type",e.target.value)}
+                      style={{width:"100%",background:C.surf1,border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 10px",color:C.text1,fontSize:13,outline:"none",fontFamily:"DM Sans,sans-serif",cursor:"pointer"}}>
+                      <option value="text">Текстовое поле</option>
+                      <option value="select">Выпадающий список</option>
+                    </select>
+                  </div>
+                  {(f.type==="select")&&(
+                    <div>
+                      {lbl("Варианты списка (каждый с новой строки)")}
+                      <textarea
+                        value={(f.options||[]).join("\n")}
+                        onChange={e=>updField(fi,"options",e.target.value.split("\n").filter(Boolean))}
+                        rows={5}
+                        style={{width:"100%",background:C.surf1,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 10px",color:C.text1,fontSize:13,outline:"none",fontFamily:"DM Sans,sans-serif",boxSizing:"border-box",resize:"vertical"}}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
               <button onClick={addField} style={{padding:"9px",background:"rgba(79,110,247,0.06)",border:`1px dashed ${C.accent}`,borderRadius:10,color:C.accent,fontSize:13,cursor:"pointer",fontFamily:"DM Sans,sans-serif"}}>+ Добавить поле</button>
@@ -358,14 +378,24 @@ function WelcomeScreen({ onStart, content }) {
                 {f.label}
                 {f.required&&<span style={{color:"#ef4444",fontSize:13,lineHeight:1}}>*</span>}
               </label>
-              <input
-                value={info[f.key]||""}
-                onChange={e=>set(f.key,e.target.value)}
-                placeholder={f.placeholder}
-                style={{width:"100%",background:C.surf2,border:`1px solid ${errors[f.key]?"#ef4444":C.border}`,borderRadius:8,padding:"10px 13px",color:C.text1,fontSize:14,outline:"none",fontFamily:"DM Sans,sans-serif",boxSizing:"border-box",transition:"border-color 0.15s"}}
-                onFocus={e=>e.target.style.borderColor=errors[f.key]?"#ef4444":C.accent}
-                onBlur={e=>e.target.style.borderColor=errors[f.key]?"#ef4444":C.border}
-              />
+              {f.type==="select" && f.options?.length ? (
+                <select
+                  value={info[f.key]||""}
+                  onChange={e=>set(f.key,e.target.value)}
+                  style={{width:"100%",background:C.surf2,border:`1px solid ${errors[f.key]?"#ef4444":C.border}`,borderRadius:8,padding:"10px 13px",color:info[f.key]?C.text1:C.text3,fontSize:14,outline:"none",fontFamily:"DM Sans,sans-serif",boxSizing:"border-box",cursor:"pointer",appearance:"auto"}}>
+                  <option value="" style={{color:C.text3,background:C.surf2}}>{f.placeholder||"Выберите..."}</option>
+                  {f.options.map((opt,oi)=><option key={oi} value={opt} style={{color:C.text1,background:C.surf2}}>{opt}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={info[f.key]||""}
+                  onChange={e=>set(f.key,e.target.value)}
+                  placeholder={f.placeholder}
+                  style={{width:"100%",background:C.surf2,border:`1px solid ${errors[f.key]?"#ef4444":C.border}`,borderRadius:8,padding:"10px 13px",color:C.text1,fontSize:14,outline:"none",fontFamily:"DM Sans,sans-serif",boxSizing:"border-box",transition:"border-color 0.15s"}}
+                  onFocus={e=>e.target.style.borderColor=errors[f.key]?"#ef4444":C.accent}
+                  onBlur={e=>e.target.style.borderColor=errors[f.key]?"#ef4444":C.border}
+                />
+              )}
               {errors[f.key]&&<div style={{fontSize:11,color:"#ef4444",marginTop:3}}>Обязательное поле</div>}
             </div>
           ))}
@@ -401,10 +431,10 @@ function QuestionBlock({ block, answers, onAnswer, onNext, onPrev, isFirst, isLa
       </div>
       <div style={{display:"grid",gap:14}}>
         {block.questions.map(q=>(
-          <div key={q.id} style={{background:C.surf1,border:`1px solid ${answers[q.id]?`${C.accent}55`:C.border}`,borderRadius:12,padding:16,transition:"border-color 0.2s"}}>
+          <div key={q.id} style={{background:'rgba(255,255,255,0.06)',border:`1px solid ${answers[q.id]?C.accent:'rgba(255,255,255,0.16)'}`,borderRadius:12,padding:16,transition:"border-color 0.2s"}}>
             <div style={{display:"flex",gap:9,marginBottom:12}}>
               <span style={{minWidth:24,height:24,background:answers[q.id]?C.accent:"rgba(255,255,255,0.06)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:answers[q.id]?"#fff":C.text3,flexShrink:0,transition:"background 0.2s"}}>{q.id}</span>
-              <p style={{margin:0,fontSize:14,color:C.text1,lineHeight:1.55,fontWeight:500}}>{q.text}</p>
+              <p style={{margin:0,fontSize:14,color:'#F1F5F9',lineHeight:1.55,fontWeight:600}}>{q.text}</p>
             </div>
             <div style={{display:"grid",gap:6}}>
               {q.answers.map((ans,ai)=>{
@@ -412,8 +442,8 @@ function QuestionBlock({ block, answers, onAnswer, onNext, onPrev, isFirst, isLa
                 const c=scoreColors[Math.min(ai,scoreColors.length-1)];
                 return (
                   <button key={ai} onClick={()=>onAnswer(q.id,pts)}
-                    style={{display:"flex",alignItems:"center",gap:9,padding:"9px 13px",background:sel?`${c}14`:"rgba(255,255,255,0.02)",border:`1px solid ${sel?c:C.border}`,borderRadius:9,cursor:"pointer",color:sel?C.text1:C.text2,fontSize:13,textAlign:"left",transition:"all 0.15s",lineHeight:1.4,fontFamily:"DM Sans,sans-serif"}}>
-                    <span style={{minWidth:20,height:20,borderRadius:5,background:sel?c:"rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:sel?"#fff":C.text3,flexShrink:0}}>{pts}</span>
+                    style={{display:"flex",alignItems:"center",gap:9,padding:"9px 13px",background:sel?`${c}18`:"rgba(255,255,255,0.07)",border:`1px solid ${sel?c:"rgba(255,255,255,0.2)"}`,borderRadius:9,cursor:"pointer",color:sel?C.text1:'#CBD5E1',fontSize:13,textAlign:"left",transition:"all 0.15s",lineHeight:1.4,fontFamily:"DM Sans,sans-serif"}}>
+                    <span style={{minWidth:20,height:20,borderRadius:5,background:sel?c:"rgba(255,255,255,0.14)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:sel?"#fff":'#94A3B8',flexShrink:0}}>{pts}</span>
                     {ans}
                   </button>
                 );
