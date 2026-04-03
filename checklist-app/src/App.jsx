@@ -21,6 +21,8 @@ const DEFAULT_FIELDS = [
 
 const DEFAULT_CONTENT = {
   adminPassword: "rcк2025",
+  managerEmail: "",
+  followUpDays: 3,
   welcome: {
     title:"Чек-лист\n«Здоровье бизнеса»",
     subtitle:"Для собственников предприятий Ростовской области",
@@ -314,8 +316,25 @@ function AdminPanel({ content, onSave, onClose, onReset }) {
 
           {tab==="security"&&(
             <div style={{display:"grid",gap:12}}>
+              {sec("Email менеджера")}
+              <div style={{fontSize:12,color:C.text3,marginTop:-8}}>На этот адрес приходят уведомления о новых лидах и follow-up письма.</div>
+              <div>{lbl("Email менеджера РЦК")} {inp(local.managerEmail||"",v=>upd("managerEmail",v))}</div>
+              {sec("Follow-up письмо")}
+              <div style={{fontSize:12,color:C.text3,marginTop:-8}}>Через сколько дней после анкеты отправлять развёрнутый анализ. Для теста поставьте 0.01 (~15 мин).</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:12,alignItems:"end"}}>
+                <div>
+                  {lbl("Дней до отправки")}
+                  <input type="number" min="0" step="0.01" value={local.followUpDays??3} onChange={e=>upd("followUpDays",parseFloat(e.target.value)||0)}
+                    style={{width:"100%",background:C.surf2,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",color:C.text1,fontSize:14,outline:"none",fontFamily:"DM Sans,sans-serif",boxSizing:"border-box"}}/>
+                </div>
+                <div style={{fontSize:12,color:C.text3,paddingBottom:4}}>
+                  {(local.followUpDays??3)===0?"Отправить при следующем запуске триггера":
+                   (local.followUpDays??3)<1?`≈ ${Math.round((local.followUpDays??3)*24*60)} минут`:
+                   `${local.followUpDays??3} ${(local.followUpDays??3)===1?"день":(local.followUpDays??3)<5?"дня":"дней"} после заполнения`}
+                </div>
+              </div>
               {sec("Пароль администратора")}
-              <div style={{fontSize:13,color:C.text3,marginTop:-8}}>Пароль запрашивается при каждом входе в это меню.</div>
+              <div style={{fontSize:12,color:C.text3,marginTop:-8}}>Запрашивается при каждом входе в это меню.</div>
               <div>{lbl("Новый пароль")} {inp(local.adminPassword||"",v=>upd("adminPassword",v))}</div>
               <div style={{background:"rgba(79,110,247,0.06)",border:`1px solid ${C.accent}33`,borderRadius:10,padding:14,fontSize:13,color:C.text2,lineHeight:1.6}}>
                 Текущий пароль: <strong style={{color:C.text1}}>{local.adminPassword||"не задан"}</strong><br/>
@@ -442,8 +461,8 @@ function QuestionBlock({ block, answers, onAnswer, onNext, onPrev, isFirst, isLa
                 const c=scoreColors[Math.min(ai,scoreColors.length-1)];
                 return (
                   <button key={ai} onClick={()=>onAnswer(q.id,pts)}
-                    style={{display:"flex",alignItems:"center",gap:9,padding:"9px 13px",background:sel?`${c}18`:"rgba(255,255,255,0.07)",border:`1px solid ${sel?c:"rgba(255,255,255,0.2)"}`,borderRadius:9,cursor:"pointer",color:sel?C.text1:'#CBD5E1',fontSize:13,textAlign:"left",transition:"all 0.15s",lineHeight:1.4,fontFamily:"DM Sans,sans-serif"}}>
-                    <span style={{minWidth:20,height:20,borderRadius:5,background:sel?c:"rgba(255,255,255,0.14)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:sel?"#fff":'#94A3B8',flexShrink:0}}>{pts}</span>
+                    style={{display:"flex",alignItems:"center",gap:9,padding:"9px 13px",background:sel?`${c}22`:"rgba(255,255,255,0.09)",border:`1px solid ${sel?c:"rgba(255,255,255,0.25)"}`,borderRadius:9,cursor:"pointer",color:sel?'#fff':'#E2E8F0',fontSize:13,textAlign:"left",transition:"all 0.15s",lineHeight:1.4,fontFamily:"DM Sans,sans-serif"}}>
+                    <span style={{minWidth:20,height:20,borderRadius:5,background:sel?c:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:sel?"#fff":"#CBD5E1",flexShrink:0}}>{pts}</span>
                     {ans}
                   </button>
                 );
@@ -592,7 +611,7 @@ export default function App() {
       }
     }catch(e){setAiText("Ошибка: "+e.message);}
     setLoading(false);
-    if(finalText){fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({companyInfo,answers,blockScores,totalScore,aiAnalysis:finalText})}).catch(()=>{});}
+    if(finalText){fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({companyInfo,answers,blockScores,totalScore,aiAnalysis:finalText,blocks:content.blocks,managerEmail:content.managerEmail||"",followUpDays:content.followUpDays??3})}).catch(()=>{});}
   };
 
   const resultsStep = content.blocks.length + 1;
