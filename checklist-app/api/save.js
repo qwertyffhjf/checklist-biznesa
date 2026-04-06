@@ -106,7 +106,7 @@ export default async function handler(req, res) {
     await fetch("https://api.resend.com/emails", {
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":`Bearer ${RESEND_KEY}`},
-      body:JSON.stringify({ from:"РЦК Диагностика <onboarding@resend.dev>", to:[mgr], subject:`🔔 Новый лид: ${companyInfo.name||"Без названия"} — ${totalScore}/100 ${level}`, html:mgrHtml }),
+      body:JSON.stringify({ from:"РЦК Диагностика <onboarding@resend.dev>", to:[mgr], subject:`Новый лид РЦК: ${companyInfo.name||"Без названия"} — ${totalScore}/100 (${level.replace(/[🔴🟡🟢🔵]/g,"").trim()})`, html:mgrHtml }),
     }).then(r=>console.log("Manager email:", r.status)).catch(e=>console.error("Manager email error:", e.message));
   }
 
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
     await fetch("https://api.resend.com/emails", {
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":`Bearer ${RESEND_KEY}`},
-      body:JSON.stringify({ from:"РЦК Ростовской области <onboarding@resend.dev>", to:[userEmail], subject:`Результаты диагностики — ${totalScore}/100 | РЦК`, html:userHtml }),
+      body:JSON.stringify({ from:"РЦК Ростовской области <onboarding@resend.dev>", to:[userEmail], subject:`Результаты диагностики ${companyInfo.name||""} — ${totalScore}/100 | РЦК`, html:userHtml }),
     }).then(r=>console.log("User email:", r.status)).catch(e=>console.error("User email error:", e.message));
   }
 
