@@ -1,7 +1,4 @@
 // api/save.js
-// Сохраняет данные в Google Sheets через Apps Script webhook.
-// Apps Script сам отправляет письма через Gmail.
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -40,7 +37,6 @@ export default async function handler(req, res) {
     ai_analysis: (aiAnalysis || "").slice(0, 2000),
     manager_email: req.body.managerEmail || "",
     follow_up_days: req.body.followUpDays ?? 3,
-    // Передаём блоки чтобы Apps Script мог сформировать детальное письмо
     blocks_json: JSON.stringify((blocks || []).map(b => ({
       title: b.title,
       questions: b.questions.map(q => ({
@@ -53,17 +49,17 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Отправляем данные в Apps Script — не ждём JSON ответа
-    // Apps Script может вернуть HTML редирект, это нормально
-    fetch(SHEETS_URL, {
+    // ВАЖНО: await — ждём завершения до отправки ответа клиенту
+    const resp = await fetch(SHEETS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(row),
-    }).catch(e => console.error("Sheets fetch error:", e.message));
-
-    return res.status(200).json({ ok: true });
+    });
+    const text = await resp.text();
+    console.log("Sheets response status:", resp.status, "body:", text.slice(0, 200));
+    return res.status(200).json({ ok: true, status: resp.status });
   } catch (err) {
-    console.error("Sheets/email error:", err);
+    console.error("Sheets/email error:", err.message);
     return res.status(200).json({ ok: false, error: err.message });
   }
 }
